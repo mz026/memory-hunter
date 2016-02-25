@@ -1,55 +1,75 @@
 require 'json'
+
 class Analyzer
-  attr_reader :data
-  def initialize(filename)
-    @filename = filename
-    @data = []
-    File.open(@filename) do |f|
-      f.each_line do |line|
-        @data << (JSON.parse(line))
-      end
+  class AnalyzeException < StandardError; end
+  attr_reader :first_dump, :second_dump, :third_dump
+
+  def self.group objs
+    puts "grouping..."
+    objs.group_by do |obj|
+      { file: obj['file'], type: obj['type'], line: obj['line'] }
     end
   end
 
-  def analyze log
-    data.group_by{|row| row["generation"]}
-      .sort{|a,b| a[0].to_i <=> b[0].to_i}
-      .map do |k,v|
-        log.puts "generation #{k} objects #{v.count}"
-        k
-      end
+  def initialize(first_dump:, second_dump:, third_dump:)
+    @first_dump = first_dump
+    @second_dump = second_dump
+    @third_dump = third_dump
+
+    raise AnalyzeException, 'dump file does not exist' unless all_dumps_present?
   end
 
-  def analyze_generation generation, log
-    log.puts "=========== #{generation} =============\n"
-    gen_data = data.select {|d| d['generation'] == generation}
-
-    gen_data.group_by{|row| "#{row["file"]}:#{row["line"]}"}
-      .sort{|a,b| b[1].count <=> a[1].count}
-      .each do |k,v|
-        memsize = v.inject(0) {|sum, o| sum + (o['memsize'] || 0)}
-        log.puts "#{k} * #{v.count} - #{memsize}"# if (k.include?('api') && v.count > 400)
-      end
-    log.puts("\n" * 3)
+  def all_dumps_present?
+    File.exist?(first_dump) && File.exist?(second_dump) && File.exist?(third_dump)
   end
+  private :all_dumps_present?
+
+  def leaked_objects
+    leaked = []
+    index = 1
+
+    first_dump_addresses
+    third_dump_addresses
+
+    puts "couting leaked..."
+    File.open(second_dump).each_line do |line|
+      puts "counting index #{index}" if index % 1000 == 0
+      parsed = JSON.parse(line)
+      address = parsed['address']
+      leaked << parsed if leaked?(address)
+      index = index + 1
+    end
+    leaked
+  end
+
+  def first_dump_addresses
+    return @first_dump_addresses if @first_dump_addresses
+
+    puts "extracting dump1 addresses..."
+    @first_dump_addresses = []
+    File.open(first_dump).each_line do |line|
+      obj = JSON.parse(line)
+      @first_dump_addresses << obj['address'] if obj['address']
+    end
+    @first_dump_addresses
+  end
+  private :first_dump_addresses
+
+  def third_dump_addresses
+    return @third_dump_addresses if @third_dump_addresses
+
+    puts "extracting dump3 addresses..."
+    @third_dump_addresses = []
+    File.open(third_dump).each_line do |line|
+      obj = JSON.parse(line)
+      @third_dump_addresses << obj['address'] if obj['address']
+    end
+    @third_dump_addresses
+  end
+  private :third_dump_addresses
+
+  def leaked? address
+    !first_dump_addresses.include?(address) && third_dump_addresses.include?(address)
+  end
+  private :leaked?
 end
-
-file_name = ARGV[0]
-log = File.open('log', 'w+')
-
-analyzer = Analyzer.new file_name
-generations = analyzer.analyze log
-
-generations.each do |g|
-  if g
-    analyzer.analyze_generation g, log
-  end
-end
-
-# generation = ARGV[1]
-#
-# if generation
-#   Analyzer.new(file_name).analyze_generation(generation.to_i)
-# else
-#   Analyzer.new(file_name).analyze
-# end
