@@ -1,4 +1,5 @@
 require 'json'
+require 'set'
 
 class Analyzer
   class AnalyzeException < StandardError; end
@@ -46,12 +47,12 @@ class Analyzer
     return @first_dump_addresses if @first_dump_addresses
 
     puts "extracting dump1 addresses..."
-    @first_dump_addresses = []
+    addrs = []
     File.open(first_dump).each_line do |line|
       obj = JSON.parse(line)
-      @first_dump_addresses << obj['address'] if obj['address']
+      addrs << obj['address'] if obj['address']
     end
-    @first_dump_addresses
+    @first_dump_addresses = Set.new addrs
   end
   private :first_dump_addresses
 
@@ -59,12 +60,12 @@ class Analyzer
     return @third_dump_addresses if @third_dump_addresses
 
     puts "extracting dump3 addresses..."
-    @third_dump_addresses = []
+    addrs = []
     File.open(third_dump).each_line do |line|
       obj = JSON.parse(line)
-      @third_dump_addresses << obj['address'] if obj['address']
+      addrs << obj['address'] if obj['address']
     end
-    @third_dump_addresses
+    @third_dump_addresses = Set.new addrs
   end
   private :third_dump_addresses
 
