@@ -1,36 +1,22 @@
 require 'httparty'
 require 'json'
-
-def worker_pids
-  processes = `ps aux | grep unicorn`.split("\n")
-  worker_strs = processes.select do |process_str|
-    process_str.split[11].include?('worker')
-  end
-
-  worker_strs.map do |process_str|
-    process_str.split[1]
-  end
-end
+require 'yaml'
 
 def memory_usage_of pid
   `ps ax -o pid,rss | grep -E "^[[:space:]]*#{pid}"`.strip.split.map(&:to_i)[1]
 end
 
 pid = ARGV[0]
-url = 'http://localhost:9090/api/chatrooms/test-messages'
-req_count = 3000
+req_config = YAML.load_file('request.yml')
+count = req_config['count']
 
-memory_usages = req_count.times.map do |i|
-  HTTParty.post(url,
-                :body => {
-                  message: {
-                    content: 'hello this is the message',
-                    push_at: Time.now.to_i
-                  } }.to_json,
-                headers: { 'Content-Type': 'application/json' })
+memory_usages = count.times.map do |i|
+  HTTParty.send(req_config['method'], req_config['url'],
+                  :body => req_config['body'].to_json,
+                  :headers => req_config['headers'])
   mem = memory_usage_of(pid)/1000.0
-  p "req #{i}: #{mem} mb"
+  puts "req #{i}: #{mem} mb"
   mem
 end
 
-p "difference after #{memory_usages.length} req: #{( memory_usages.last - memory_usages.first ).round(3)} mb"
+puts "difference after #{memory_usages.length} req: #{( memory_usages.last - memory_usages.first ).round(3)} mb"
