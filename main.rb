@@ -28,23 +28,3 @@ end
 
 log_to_file("result-mem-#{Time.now.to_i}", g.sort_by {|data| - data[:size]})
 log_to_file("result-byte-#{Time.now.to_i}", g.sort_by {|data| - data[:bsize]})
-
-# f = File.open("result-mem-#{Time.now.to_i}", 'w+')
-# g.sort_by do |data|
-#   - data[:size]
-# end.each do |data|
-#   memsize = data[:size] / MB
-#   bsize = data[:bsize] / MB
-#   f.puts "LEAKED #{data[:count]} #{data[:key][:type]} objects (#{memsize}/#{bsize}): #{data[:key][:file]}:#{data[:key][:line]}"
-# end
-# f.close
-
-# f = File.open("result-byte-#{Time.now.to_i}", 'w+')
-# g.sort_by do |data|
-#   - data[:bsize]
-# end.each do |data|
-#   memsize = data[:size] / MB
-#   bsize = data[:bsize] / MB
-#   f.puts "LEAKED #{data[:count]} #{data[:key][:type]} objects (#{memsize}/#{bsize}): #{data[:key][:file]}:#{data[:key][:line]}"
-# end
-# f.close

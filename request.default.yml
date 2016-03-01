@@ -1,0 +1,9 @@
+count: 500
+method: post
+url: 'http://localhost:8080/my-post-api'
+body:
+  message:
+    content: 'the message content'
+    push_at: 1456813395
+headers:
+  'Content-Type': 'application/json'
