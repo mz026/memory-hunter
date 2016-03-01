@@ -6,7 +6,7 @@ The way we used to analyse memory usage is based on [this blog post](http://blog
 
 ### Are we leaking?
 
-Hit an API or a page repeatedly and see if the memory usage keep going up without converging to a certain amount.
+Hit an API or a page repeatedly and see if the memory usage keeps going up without converging to a certain amount.
 
 - Copy `request.default.yml` to `request.yml`, and edit the request parameters.
 - run `$ ruby profile.rb <PID_OF_SERVER>`
